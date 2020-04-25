@@ -80,6 +80,9 @@ impl PrivateKey {
         }
     }
 
+    // TODO pcks8 to private key
+    // https://github.com/advancedtelematic/rust-pkcs8
+
     pub fn sign(&self, msg: &[u8]) -> Result<Vec<u8>> {
         let alg = &ring::signature::ECDSA_P256_SHA256_ASN1_SIGNING;
         let sk = ring::signature::EcdsaKeyPair::from_pkcs8(alg, &self.doc).unwrap();
