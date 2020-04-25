@@ -75,12 +75,14 @@ $$
 
 Alice使用Bob的公钥加密消息m：
 $$
+\begin{split}
 For\ random\ r \in [1, n - 1],calculate\ R = rG \\
 derive\ shared\ secret: S = P_x, where\ P = P (P_x, P_y) = rK_b, P \ne O \\
 derive\ K_E || K_M = KDF(S || S_1) \\
 encrypt\ message\ m: c = E(k_E; m) \\
 calculate\ MAC:  d = MAC(k_M; c || S_2) \\
 output: R || c || d
+\end{split}
 $$
 
 
