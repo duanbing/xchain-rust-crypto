@@ -1,7 +1,9 @@
 extern crate base58;
 extern crate num_bigint;
 extern crate ring;
+extern crate rustls;
 use crate::errors::{Error, ErrorKind, Result};
+use crate::keys::*;
 
 use crypto::digest::Digest;
 use crypto::ripemd160::Ripemd160;
@@ -10,69 +12,7 @@ use base58::{FromBase58, ToBase58};
 use ring::digest;
 //use ring::signature::UnparsedPublicKey;
 use std::collections::HashMap;
-use std::vec::Vec;
 
-const PUBLIC_KEY_MAX_LEN: usize = 65;
-
-//#[derive(PartialEq)]
-//enum CryptoVersion {
-//    NIST,
-//    GM,
-//}
-
-#[allow(non_camel_case_types)]
-#[derive(Debug, PartialEq)]
-enum AlgorithmID {
-    ECDSA_P256_SHA256_ASN1,
-}
-
-pub struct PublicKey {
-    alg: AlgorithmID,
-    x: Vec<u8>,
-    y: Vec<u8>,
-    key_buf: Vec<u8>,
-}
-
-impl PublicKey {
-    pub fn new(&self, pubk: &[u8]) -> Self {
-        assert_eq!(pubk.len(), PUBLIC_KEY_MAX_LEN);
-        let x = unsafe { std::slice::from_raw_parts(&(pubk[1]), 32) };
-        let y = unsafe { std::slice::from_raw_parts(&(pubk[33]), 32) };
-        PublicKey {
-            alg: AlgorithmID::ECDSA_P256_SHA256_ASN1,
-            x: x.to_vec().into(),
-            y: y.to_vec().into(),
-            key_buf: pubk.to_vec().into(),
-        }
-    }
-
-    pub fn sign(&self, sig: &[u8], msg: &[u8]) -> Result<()> {
-        let public_key = ring::signature::UnparsedPublicKey::new(
-            &ring::signature::ECDSA_P256_SHA256_ASN1,
-            &self.key_buf,
-        );
-        match public_key.verify(msg, sig) {
-            Ok(x) => Ok(x),
-            Err(e) => {
-                println!("verify: {:?}", e);
-                return Err(Error::from(ErrorKind::CryptoError));
-            }
-        }
-    }
-}
-
-/*
-impl PrivateKey {
-    pub fn new(&self, seed: &[u8]) -> Self {
-        let alg = &ring::signature::ECDSA_P256_SHA256_ASN1_SIGNING;
-        let doc = match ring::signature::EcdsaKeyPair::generate_pkcs8(alg, seed) {
-            Ok(x) => x,
-            Err(e) => return PrivateKey { is_valid: false },
-        };
-        let k = ring::signature::EcdsaKeyPair::from_pkcs8(alg, doc);
-    }
-}
-*/
 pub fn get_address_from_public_keys(keys: &[PublicKey]) -> Result<String> {
     check_pubk_in_one_curve(keys)?;
     let mut pubk_map = HashMap::new();

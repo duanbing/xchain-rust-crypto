@@ -2,6 +2,7 @@ extern crate ring;
 
 pub mod account;
 pub mod hash;
+pub mod keys;
 pub mod sign;
 
 pub mod errors;
