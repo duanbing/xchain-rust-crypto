@@ -1,7 +1,3 @@
-extern crate base58;
-extern crate num_bigint;
-extern crate ring;
-extern crate rustls;
 use crate::errors::{Error, ErrorKind, Result};
 use crate::keys::*;
 
