@@ -1,32 +1,24 @@
+use crate::ec::keys::PublicKey;
 use crate::errors::{Error, ErrorKind, Result};
-use crate::keys::*;
-
 use crypto::digest::Digest;
 use crypto::ripemd160::Ripemd160;
 
 use base58::{FromBase58, ToBase58};
 use ring::digest;
-//use ring::signature::UnparsedPublicKey;
 use std::collections::HashMap;
 
+pub enum CryptoType {
+    NIST = 1,
+    GM = 2,
+}
+
 pub fn get_address_from_public_keys(keys: &[PublicKey]) -> Result<String> {
-    check_pubk_in_one_curve(keys)?;
     let mut pubk_map = HashMap::new();
     for key in keys.iter() {
         pubk_map.insert(&key.x, &key.y);
     }
     let res = serde_json::to_vec(&pubk_map)?;
     get_address_from_key_data(&keys[0], &res)
-}
-
-fn check_pubk_in_one_curve(keys: &[PublicKey]) -> Result<()> {
-    let key1 = &keys[0];
-    for key in keys.iter() {
-        if key.alg != key1.alg {
-            return Err(Error::from(ErrorKind::NotExactTheSameCurveInputError));
-        }
-    }
-    Ok(())
 }
 
 fn get_address_from_key_data(_key: &PublicKey, data: &[u8]) -> Result<String> {
@@ -36,7 +28,8 @@ fn get_address_from_key_data(_key: &PublicKey, data: &[u8]) -> Result<String> {
     ha.input(&mut hash256.as_ref());
 
     //TODO:  NIST only now, get the standard from _key
-    let mut buf = vec![1u8; 1];
+    let n_version = CryptoType::NIST as u8;
+    let mut buf = vec![n_version; 1];
     buf.append(&mut hash160);
 
     let check_code = crate::hash::hash::double_sha256(&buf);

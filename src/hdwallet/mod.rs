@@ -1,2 +1,3 @@
 mod languages;
-pub mod seed;
+pub mod rand;
+pub use languages::Language;

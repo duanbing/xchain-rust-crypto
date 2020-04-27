@@ -7,17 +7,23 @@ extern crate num_traits;
 extern crate ring;
 
 pub mod account;
+pub mod bits;
+pub mod c;
+pub mod gfp;
 pub mod hash;
 pub mod hdwallet;
-pub mod keys;
+pub mod limb;
 pub mod sign;
 
-pub mod errors;
+#[macro_use]
+mod debug;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+#[macro_use]
+pub mod arithmetic;
+
+#[macro_use]
+pub mod bssl;
+
+pub mod ec;
+pub mod errors;
+pub mod io;

@@ -56,6 +56,8 @@ pub enum ErrorKind {
     ErrLanguageNotSupported,
     ErrMnemonicNumNotValid,
     ErrMnemonicChecksumIncorrect,
+    ErrCryptographyNotSupported,
+    LimbUnspecifiedError,
     Unknown,
 }
 
@@ -87,6 +89,8 @@ impl ErrorKind {
 	    ErrorKind::ErrMnemonicNumNotValid => ("The number of words in the Mnemonic sentence is not valid. It must be within [12, 15, 18, 21, 24]"),
 	    // 助记词语句中包含的校验位的格式不合法
 	    ErrorKind::ErrMnemonicChecksumIncorrect => ("The checksum within the Mnemonic sentence incorrect"),
+	    ErrorKind::ErrCryptographyNotSupported => "unsupported cryptography system",
+	    ErrorKind::LimbUnspecifiedError => "call limb error",
             ErrorKind::Unknown => "unknown error",
         }
     }
@@ -119,6 +123,8 @@ impl From<u32> for Error {
             0x0000_0012 => ErrorKind::ErrLanguageNotSupported,
             0x0000_0013 => ErrorKind::ErrMnemonicNumNotValid,
             0x0000_0014 => ErrorKind::ErrMnemonicChecksumIncorrect,
+            0x0000_0015 => ErrorKind::ErrCryptographyNotSupported,
+            0x0000_0016 => ErrorKind::LimbUnspecifiedError,
             _ => ErrorKind::Unknown,
         };
 
@@ -131,6 +137,13 @@ impl From<u32> for Error {
 impl From<serde_json::Error> for Error {
     #[inline]
     fn from(err: serde_json::Error) -> Error {
+        Error::new(ErrorKind::ParseError, err)
+    }
+}
+
+impl From<std::io::Error> for Error {
+    #[inline]
+    fn from(err: std::io::Error) -> Error {
         Error::new(ErrorKind::ParseError, err)
     }
 }
@@ -153,6 +166,8 @@ impl Into<u32> for Error {
             ErrorKind::ErrLanguageNotSupported => 0x0000_0012,
             ErrorKind::ErrMnemonicNumNotValid => 0x0000_0013,
             ErrorKind::ErrMnemonicChecksumIncorrect => 0x0000_0014,
+            ErrorKind::ErrCryptographyNotSupported => 0x0000_0015,
+            ErrorKind::LimbUnspecifiedError => 0x0000_0016,
             ErrorKind::Unknown => 0xffff_ffff,
         }
     }
