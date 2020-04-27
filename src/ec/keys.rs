@@ -69,6 +69,14 @@ pub struct PublicKey {
     len: usize,
 }
 
+impl PublicKey {
+    pub fn xy(&self) -> (&[u8], &[u8]) {
+        let elem_and_scalar_bytes: usize = (self.len - 1) / 2;
+
+        (&self.bytes[1..]).split_at(elem_and_scalar_bytes)
+    }
+}
+
 impl AsRef<[u8]> for PublicKey {
     fn as_ref(&self) -> &[u8] {
         &self.bytes[..self.len]

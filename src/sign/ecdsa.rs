@@ -1,13 +1,17 @@
-use crate::{
-    ec::{self, keys::KeyPair},
-    errors::Result,
+use crate::{ec, errors::Result};
+
+pub use crate::ec::suite_b::ecdsa::{
+    signing::{EcdsaKeyPair, EcdsaSigningAlgorithm, ECDSA_P256_SHA256_ASN1_SIGNING},
+    verification::{EcdsaVerificationAlgorithm, ECDSA_P256_SHA256_ASN1},
 };
+
 use core;
 use untrusted;
 
-pub fn sign_ecdsa_by_double_sha256(key_pair: &KeyPair, msg: &[u8]) -> Result<Vec<u8>> {
+pub fn sign_ecdsa_by_double_sha256(key_pair: &EcdsaKeyPair, msg: &[u8]) -> Result<Vec<u8>> {
     let msg = ring::digest::digest(&ring::digest::SHA256, msg);
-    key_pair.sign(msg.as_ref())
+    let sig = key_pair.sign(msg.as_ref())?;
+    Ok(sig.as_ref().to_vec())
 }
 
 /// A signature verification algorithm.

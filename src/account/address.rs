@@ -15,7 +15,8 @@ pub enum CryptoType {
 pub fn get_address_from_public_keys(keys: &[PublicKey]) -> Result<String> {
     let mut pubk_map = HashMap::new();
     for key in keys.iter() {
-        pubk_map.insert(&key.x, &key.y);
+        let xy = key.xy();
+        pubk_map.insert(xy.0, xy.1);
     }
     let res = serde_json::to_vec(&pubk_map)?;
     get_address_from_key_data(&keys[0], &res)

@@ -9,7 +9,6 @@ extern crate ring;
 pub mod account;
 pub mod bits;
 pub mod c;
-pub mod gfp;
 pub mod hash;
 pub mod hdwallet;
 pub mod limb;
