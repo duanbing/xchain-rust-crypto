@@ -221,9 +221,12 @@ impl PublicKeyOps {
     // implements NIST SP 800-56A Step 2: "Verify that xQ and yQ are integers
     // in the interval [0, p-1] in the case that q is an odd prime p[.]"
     pub fn elem_parse(&self, input: &mut untrusted::Reader) -> Result<Elem<R>> {
-        let encoded_value = input
-            .read_bytes(self.common.num_limbs * LIMB_BYTES)
-            .unwrap();
+        let encoded_value = match input.read_bytes(self.common.num_limbs * LIMB_BYTES) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Error::from(ErrorKind::CryptoError));
+            }
+        };
         let parsed = elem_parse_big_endian_fixed_consttime(self.common, encoded_value)?;
         let mut r = Elem::zero();
         // Montgomery encode (elem_to_mont).
@@ -447,8 +450,8 @@ extern "C" {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test;
-    use alloc::{format, vec, vec::Vec};
+    use crate::{test, test_file};
+    use std::{format, vec, vec::Vec};
     use untrusted;
 
     const ZERO_SCALAR: Scalar = Scalar {
@@ -1123,7 +1126,7 @@ mod tests {
     ) {
         for i in 0..ops.num_limbs {
             if actual[i] != expected[i] {
-                let mut s = alloc::string::String::new();
+                let mut s = std::string::String::new();
                 for j in 0..ops.num_limbs {
                     let formatted = format!("{:016x}", actual[ops.num_limbs - j - 1]);
                     s.push_str(&formatted);

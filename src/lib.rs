@@ -26,3 +26,6 @@ pub mod bssl;
 pub mod ec;
 pub mod errors;
 pub mod io;
+
+#[macro_use]
+pub mod test;

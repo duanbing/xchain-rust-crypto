@@ -20,7 +20,6 @@ use crate::{
     errors::{Error, ErrorKind, Result},
     limb::LimbMask,
 };
-use untrusted;
 
 // NIST SP 800-56A Step 3: "If q is an odd prime p, verify that
 // yQ**2 = xQ**3 + axQ + b in GF(p), where the arithmetic is performed modulo

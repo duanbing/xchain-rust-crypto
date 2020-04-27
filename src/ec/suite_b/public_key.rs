@@ -37,7 +37,12 @@ pub fn parse_uncompressed_point(
     // the affine representation.)
     let (x, y) = input.read_all(Error::from(ErrorKind::CryptoError), |input| {
         // The encoding must be 4, which is the encoding for "uncompressed".
-        let encoding = input.read_byte().unwrap();
+        let encoding = match input.read_byte() {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Error::from(ErrorKind::CryptoError));
+            }
+        };
         if encoding != 4 {
             return Err(Error::from(ErrorKind::CryptoError));
         }
@@ -68,7 +73,7 @@ pub fn parse_uncompressed_point(
 #[cfg(test)]
 mod tests {
     use super::{super::ops, *};
-    use crate::test;
+    use crate::{test, test_file};
     use untrusted;
 
     #[test]

@@ -78,11 +78,11 @@ fn digest_scalar_(ops: &ScalarOps, digest: &[u8]) -> Scalar {
 mod tests {
     use super::digest_bytes_scalar;
     use crate::{
-        digest,
         ec::suite_b::ops::*,
         limb::{self, LIMB_BYTES},
-        test,
+        test, test_file,
     };
+    use ring::digest;
     use untrusted;
 
     #[test]

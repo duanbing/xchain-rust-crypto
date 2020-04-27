@@ -56,3 +56,13 @@ impl AsRef<[u8]> for Signature {
         &self.value[..self.len]
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    pub fn test_pk() {
+        println!("xxxxxx");
+    }
+}

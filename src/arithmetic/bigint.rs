@@ -1268,8 +1268,8 @@ extern "C" {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test;
-    use alloc::format;
+    use crate::{test, test_file};
+    use std::format;
     use untrusted;
 
     // Type-level representation of an arbitrary modulus.
