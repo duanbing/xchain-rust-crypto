@@ -58,7 +58,8 @@ pub fn generate_private_scalar_bytes(
     // sufficient. TODO: Figure out what we can do to mitigate the bias issue
     // and switch to the other mechanism.
 
-    let mut candidate = out;
+    println!("nihao ");
+    let candidate = out;
 
     // XXX: The value 100 was chosen to match OpenSSL due to uncertainty of
     // what specific value would be better, but it seems bad to try 100 times.
@@ -72,7 +73,7 @@ pub fn generate_private_scalar_bytes(
         //
         // The requirement that the random number generator has the
         // requested security strength is delegated to `rng`.
-        candidate.copy_from_slice(rng);
+        candidate.copy_from_slice(&rng[0..candidate.len()]);
         // NSA Guide Steps 5, 6, and 7.
         if check_scalar_big_endian_bytes(ops, candidate).is_err() {
             continue;

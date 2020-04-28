@@ -113,6 +113,15 @@ impl EcdsaKeyPair {
     }
     */
 
+    pub fn from_seed_unchecked(
+        alg: &'static EcdsaSigningAlgorithm,
+        salt: untrusted::Input,
+    ) -> Result<Self> {
+        let seed = ec::Seed::from_bytes(alg.curve, salt)?;
+        let key_pair = ec::KeyPair::derive(seed)?;
+        Ok(Self::new(alg, key_pair))
+    }
+
     fn new(alg: &'static EcdsaSigningAlgorithm, key_pair: ec::KeyPair) -> Self {
         let (seed, public_key) = key_pair.split();
         let d = private_key::private_key_as_scalar(alg.private_key_ops, &seed);
@@ -209,6 +218,14 @@ impl EcdsaKeyPair {
         }
 
         Err(Error::from(ErrorKind::CryptoError))
+    }
+}
+
+impl crate::sign::ecdsa::KeyPair for EcdsaKeyPair {
+    type PublicKey = PublicKey;
+
+    fn public_key(&self) -> &Self::PublicKey {
+        &self.public_key
     }
 }
 

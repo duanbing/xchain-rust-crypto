@@ -35,7 +35,7 @@ impl Seed {
         Ok(r)
     }
 
-    pub(crate) fn from_bytes(curve: &'static Curve, bytes: untrusted::Input) -> Result<Seed> {
+    pub fn from_bytes(curve: &'static Curve, bytes: untrusted::Input) -> Result<Seed> {
         let bytes = bytes.as_slice_less_safe();
         if curve.elem_scalar_seed_len != bytes.len() {
             return Err(Error::from(ErrorKind::CryptoError));

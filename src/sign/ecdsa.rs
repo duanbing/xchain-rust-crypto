@@ -14,16 +14,13 @@ pub fn sign_ecdsa_by_double_sha256(key_pair: &EcdsaKeyPair, msg: &[u8]) -> Resul
     Ok(sig.as_ref().to_vec())
 }
 
-/// A signature verification algorithm.
-pub trait VerificationAlgorithm: core::fmt::Debug + Sync {
-    /// Verify the signature `signature` of message `msg` with the public key
-    /// `public_key`.
-    fn verify(
-        &self,
-        public_key: untrusted::Input,
-        msg: untrusted::Input,
-        signature: untrusted::Input,
-    ) -> Result<()>;
+/// Key pairs for signing messages (private key and public key).
+pub trait KeyPair: core::fmt::Debug + Send + Sized + Sync {
+    /// The type of the public key.
+    type PublicKey: AsRef<[u8]> + core::fmt::Debug + Clone + Send + Sized + Sync;
+
+    /// The public key for the key pair.
+    fn public_key(&self) -> &Self::PublicKey;
 }
 
 /// A public key signature returned from a signing operation.
@@ -57,12 +54,85 @@ impl AsRef<[u8]> for Signature {
     }
 }
 
+/// A signature verification algorithm.
+pub trait VerificationAlgorithm: core::fmt::Debug + Sync {
+    /// Verify the signature `signature` of message `msg` with the public key
+    /// `public_key`.
+    fn verify(
+        &self,
+        public_key: untrusted::Input,
+        msg: untrusted::Input,
+        signature: untrusted::Input,
+    ) -> Result<()>;
+}
+
+/// An unparsed, possibly malformed, public key for signature verification.
+pub struct UnparsedPublicKey<B: AsRef<[u8]>> {
+    algorithm: &'static dyn VerificationAlgorithm,
+    bytes: B,
+}
+
+impl<B: Copy> Copy for UnparsedPublicKey<B> where B: AsRef<[u8]> {}
+
+impl<B: Clone> Clone for UnparsedPublicKey<B>
+where
+    B: AsRef<[u8]>,
+{
+    fn clone(&self) -> Self {
+        Self {
+            algorithm: self.algorithm,
+            bytes: self.bytes.clone(),
+        }
+    }
+}
+
+impl<B: AsRef<[u8]>> UnparsedPublicKey<B> {
+    /// Construct a new `UnparsedPublicKey`.
+    ///
+    /// No validation of `bytes` is done until `verify()` is called.
+    #[inline]
+    pub fn new(algorithm: &'static dyn VerificationAlgorithm, bytes: B) -> Self {
+        Self { algorithm, bytes }
+    }
+
+    /// Parses the public key and verifies `signature` is a valid signature of
+    /// `message` using it.
+    ///
+    /// See the [crate::signature] module-level documentation for examples.
+    pub fn verify(&self, message: &[u8], signature: &[u8]) -> Result<()> {
+        self.algorithm.verify(
+            untrusted::Input::from(self.bytes.as_ref()),
+            untrusted::Input::from(message),
+            untrusted::Input::from(signature),
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
+
     use super::*;
+    use crate::sign::ecdsa::KeyPair;
+    use std::str::FromStr;
 
     #[test]
-    pub fn test_pk() {
-        println!("xxxxxx");
+    pub fn test_public() {
+        let d = "29079635126530934056640915735344231956621504557963207107451663058887647996601";
+        let seed_bytes = num_bigint::BigInt::from_str(&d).unwrap().to_bytes_be();
+        let alg = &crate::sign::ecdsa::ECDSA_P256_SHA256_ASN1_SIGNING;
+        let seed = untrusted::Input::from(&seed_bytes.1);
+        let private_key = crate::sign::ecdsa::EcdsaKeyPair::from_seed_unchecked(alg, seed);
+        assert_eq!(private_key.is_ok(), true);
+        let private_key = private_key.unwrap();
+        let msg = "hello, bing!";
+        let sig = private_key.sign(msg.as_bytes());
+        assert_eq!(sig.is_ok(), true);
+        let sig = sig.unwrap();
+
+        let alg = &crate::sign::ecdsa::ECDSA_P256_SHA256_ASN1;
+
+        let public_key = self::UnparsedPublicKey::new(alg, private_key.public_key());
+        let res = public_key.verify(msg.as_bytes(), sig.as_ref());
+        assert_eq!(true, res.is_ok());
     }
 }
