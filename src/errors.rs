@@ -58,6 +58,7 @@ pub enum ErrorKind {
     ErrMnemonicChecksumIncorrect,
     ErrCryptographyNotSupported,
     LimbUnspecifiedError,
+    InvalidBigNumError,
     Unknown,
 }
 
@@ -91,6 +92,7 @@ impl ErrorKind {
 	    ErrorKind::ErrMnemonicChecksumIncorrect => ("The checksum within the Mnemonic sentence incorrect"),
 	    ErrorKind::ErrCryptographyNotSupported => "unsupported cryptography system",
 	    ErrorKind::LimbUnspecifiedError => "call limb error",
+	    ErrorKind::InvalidBigNumError => "can not parsed as bignum",
             ErrorKind::Unknown => "unknown error",
         }
     }
@@ -125,6 +127,7 @@ impl From<u32> for Error {
             0x0000_0014 => ErrorKind::ErrMnemonicChecksumIncorrect,
             0x0000_0015 => ErrorKind::ErrCryptographyNotSupported,
             0x0000_0016 => ErrorKind::LimbUnspecifiedError,
+            0x0000_0017 => ErrorKind::InvalidBigNumError,
             _ => ErrorKind::Unknown,
         };
 
@@ -168,6 +171,7 @@ impl Into<u32> for Error {
             ErrorKind::ErrMnemonicChecksumIncorrect => 0x0000_0014,
             ErrorKind::ErrCryptographyNotSupported => 0x0000_0015,
             ErrorKind::LimbUnspecifiedError => 0x0000_0016,
+            ErrorKind::InvalidBigNumError => 0x0000_0017,
             ErrorKind::Unknown => 0xffff_ffff,
         }
     }
