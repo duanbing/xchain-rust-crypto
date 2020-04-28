@@ -114,9 +114,10 @@ mod tests {
     use super::*;
     use crate::sign::ecdsa::KeyPair;
     use std::str::FromStr;
+    extern crate hex;
 
     #[test]
-    pub fn test_public() {
+    pub fn test_seed_private_public() {
         let d = "29079635126530934056640915735344231956621504557963207107451663058887647996601";
         let seed_bytes = num_bigint::BigInt::from_str(&d).unwrap().to_bytes_be();
         let alg = &crate::sign::ecdsa::ECDSA_P256_SHA256_ASN1_SIGNING;
@@ -134,5 +135,20 @@ mod tests {
         let public_key = self::UnparsedPublicKey::new(alg, private_key.public_key());
         let res = public_key.verify(msg.as_bytes(), sig.as_ref());
         assert_eq!(true, res.is_ok());
+    }
+
+    #[test]
+    pub fn test_public_sig() {
+        let key_slice = hex::decode(
+        "04a664e9bbf6d03e4b75758f7ee3732a0a8eff9e76a0edc9a14ca584b966493664d0d8b7871c5b33bdee9f0e154d7eb948356229e7694cb04a785520952dae1438",
+    )
+    .unwrap();
+
+        let alg = &ring::signature::ECDSA_P256_SHA256_ASN1;
+        let public_key = ring::signature::UnparsedPublicKey::new(alg, &key_slice);
+        let msg = String::from("hello world");
+        let sig = hex::decode("3046022100873aad44cea8badf28c8f6b4509763e875a21805daf971bffc3a9bd27288a30b022100899216a47e3f071ede3d697bb172b94a9240d0c8cc6a5754a68edc00e1752873").unwrap();
+        let res = public_key.verify(&msg.as_bytes(), &sig);
+        println!("{:?}", res);
     }
 }
