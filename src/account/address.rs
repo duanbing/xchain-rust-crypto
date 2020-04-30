@@ -1,4 +1,3 @@
-use crate::ec::keys::PublicKey;
 use crate::errors::{Error, ErrorKind, Result};
 use crypto::digest::Digest;
 use crypto::ripemd160::Ripemd160;
@@ -12,7 +11,11 @@ pub enum CryptoType {
     GM = 2,
 }
 
-pub fn get_address_from_public_keys(keys: &[PublicKey]) -> Result<String> {
+//pub type PublicKey<'a> =
+//    crate::sign::ecdsa::UnparsedPublicKey<&'a crate::ec::suite_b::ecdsa::signing::PublicKey>;
+pub type PublicKey<'a, B: AsRef<[u8]>> = crate::sign::ecdsa::UnparsedPublicKey<&'a B>;
+
+pub fn get_address_from_public_keys<B: AsRef<[u8]>>(keys: &[PublicKey<B>]) -> Result<String> {
     let mut pubk_map = HashMap::new();
     for key in keys.iter() {
         let xy = key.xy();
@@ -22,7 +25,11 @@ pub fn get_address_from_public_keys(keys: &[PublicKey]) -> Result<String> {
     get_address_from_key_data(&keys[0], &res)
 }
 
-fn get_address_from_key_data(_key: &PublicKey, data: &[u8]) -> Result<String> {
+pub fn get_address_from_public_key<B: AsRef<[u8]>>(key: &PublicKey<B>) -> Result<String> {
+    get_address_from_key_data(key, key.as_ref())
+}
+
+fn get_address_from_key_data<B: AsRef<[u8]>>(_key: &PublicKey<B>, data: &[u8]) -> Result<String> {
     let hash256 = digest::digest(&digest::SHA256, data);
     let mut ha = Ripemd160::new();
     let mut hash160 = vec![0u8; 20];
@@ -40,7 +47,10 @@ fn get_address_from_key_data(_key: &PublicKey, data: &[u8]) -> Result<String> {
     Ok(buf.to_base58())
 }
 
-pub fn verify_address_using_public_keys(address: &String, pubks: &[PublicKey]) -> Result<u8> {
+pub fn verify_address_using_public_keys<B: AsRef<[u8]>>(
+    address: &String,
+    pubks: &[PublicKey<B>],
+) -> Result<u8> {
     let slice = match address.from_base58() {
         Ok(x) => x,
         Err(e) => {

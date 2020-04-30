@@ -121,10 +121,7 @@
 use std::{format, string::String, vec::Vec};
 
 #[cfg(feature = "alloc")]
-use crate::{
-    bits,
-    errors::{Error, ErrorKind, Result},
-};
+use crate::{bits, errors::Result};
 
 #[cfg(feature = "alloc")]
 use ring::digest;

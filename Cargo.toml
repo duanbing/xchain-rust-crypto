@@ -15,10 +15,10 @@ alloc = []
 [dependencies]
 ring         = "0.16.9"
 rand         = "0.7.2"
-num-bigint   = "0.2.3"
+num-bigint   =  { version = "0.2.3", features = ["serde"] }
 base58       = "0.1.0"
 rust-crypto  = "0.2.36"
-serde        = "1.0.104"
+serde        = {  version = "1.0.104", features = ["derive"]}
 serde_derive = "1.0.104"
 serde_json   = "1.0.40"
 rand_chacha  = "0.2.1"

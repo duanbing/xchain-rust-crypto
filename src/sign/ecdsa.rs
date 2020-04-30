@@ -106,7 +106,21 @@ impl<B: AsRef<[u8]>> UnparsedPublicKey<B> {
             untrusted::Input::from(signature),
         )
     }
+
+    pub fn xy(&self) -> (&[u8], &[u8]) {
+        let t = self.bytes.as_ref();
+        let elem_and_scalar_bytes: usize = (t.len() - 1) / 2;
+        (&t[1..]).split_at(elem_and_scalar_bytes)
+    }
 }
+
+impl<B: AsRef<[u8]>> AsRef<[u8]> for UnparsedPublicKey<B> {
+    fn as_ref(&self) -> &[u8] {
+        &self.bytes.as_ref()
+    }
+}
+
+/// The maximum length, in bytes, of an encoded public key.
 
 #[cfg(test)]
 mod tests {
@@ -131,6 +145,7 @@ mod tests {
         let sig = sig.unwrap();
 
         let alg = &crate::sign::ecdsa::ECDSA_P256_SHA256_ASN1;
+        println!("public key: {:?}", private_key.public_key().as_ref());
 
         let public_key = self::UnparsedPublicKey::new(alg, private_key.public_key());
         let res = public_key.verify(msg.as_bytes(), sig.as_ref());
@@ -144,8 +159,8 @@ mod tests {
     )
     .unwrap();
 
-        let alg = &ring::signature::ECDSA_P256_SHA256_ASN1;
-        let public_key = ring::signature::UnparsedPublicKey::new(alg, &key_slice);
+        let alg = &crate::sign::ecdsa::ECDSA_P256_SHA256_ASN1;
+        let public_key = self::UnparsedPublicKey::new(alg, &key_slice);
         let msg = String::from("hello world");
         let sig = hex::decode("3046022100873aad44cea8badf28c8f6b4509763e875a21805daf971bffc3a9bd27288a30b022100899216a47e3f071ede3d697bb172b94a9240d0c8cc6a5754a68edc00e1752873").unwrap();
         let res = public_key.verify(&msg.as_bytes(), &sig);

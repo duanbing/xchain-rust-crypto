@@ -57,6 +57,7 @@ pub struct EcdsaKeyPair {
     d: Scalar<R>,
     alg: &'static EcdsaSigningAlgorithm,
     public_key: PublicKey,
+    seed: Vec<u8>,
 }
 
 derive_debug_via_field!(EcdsaKeyPair, stringify!(EcdsaKeyPair), public_key);
@@ -131,10 +132,15 @@ impl EcdsaKeyPair {
             .scalar_product(&d, &alg.private_scalar_ops.oneRR_mod_n);
 
         Self {
+            seed: seed.bytes_less_safe().to_vec(),
             d,
             alg,
             public_key: PublicKey(public_key),
         }
+    }
+
+    pub fn seed_as_bytes(&self) -> Vec<u8> {
+        self.seed.to_owned().into()
     }
 
     /// Returns the signature of the `message` using a random nonce

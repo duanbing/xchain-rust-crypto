@@ -58,7 +58,6 @@ pub fn generate_private_scalar_bytes(
     // sufficient. TODO: Figure out what we can do to mitigate the bias issue
     // and switch to the other mechanism.
 
-    println!("nihao ");
     let candidate = out;
 
     // XXX: The value 100 was chosen to match OpenSSL due to uncertainty of
