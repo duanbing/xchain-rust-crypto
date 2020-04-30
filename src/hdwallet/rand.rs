@@ -131,7 +131,7 @@ fn add_old_checksum(entropy: &[u8]) -> num_bigint::BigInt {
     data_bigint
 }
 
-fn bytes_pad(v: Vec<u8>, sz: usize) -> Vec<u8> {
+pub fn bytes_pad(v: Vec<u8>, sz: usize) -> Vec<u8> {
     if v.len() >= sz {
         return v;
     }
@@ -276,16 +276,19 @@ pub enum KeyStrength {
     HARD,
 }
 
+pub fn get_bits_len(ks: KeyStrength) -> usize {
+    match ks {
+        KeyStrength::EASY => 128,
+        KeyStrength::MIDDLE => 192,
+        KeyStrength::HARD => 256,
+    }
+}
+
 pub fn generate_seed_with_strength_and_keylen(
     strength: KeyStrength,
     keylen: usize,
 ) -> Result<Vec<u8>> {
-    let entropy_bit_len = match strength {
-        KeyStrength::EASY => 128,
-        KeyStrength::MIDDLE => 192,
-        KeyStrength::HARD => 256,
-    };
-
+    let entropy_bit_len = get_bits_len(strength);
     let entropy_byte = generate_entropy(entropy_bit_len)?;
     generate_seed_with_random_password(&entropy_byte, keylen)
 }

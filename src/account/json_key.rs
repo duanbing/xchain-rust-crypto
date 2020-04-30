@@ -2,8 +2,9 @@ use crate::sign::ecdsa::EcdsaKeyPair;
 use crate::sign::ecdsa::KeyPair;
 use num_bigint::BigInt;
 use num_bigint::Sign::Plus;
+use std::io::prelude::*;
 
-use serde::{ser::Serializer, Deserialize, Serialize};
+use serde::{de, de::Deserializer, ser::Serializer, Deserialize, Serialize};
 
 use super::PublicKey;
 use crate::errors::*;
@@ -15,15 +16,38 @@ where
 {
     s.serialize_str(x.to_str_radix(10).as_str())
 }
+
+fn big_deserialize<'de, D>(deserializer: D) -> std::result::Result<BigInt, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use std::str::FromStr;
+    let s = String::deserialize(deserializer)?;
+    let b = BigInt::from_str(s.as_str()).map_err(de::Error::custom)?;
+    Ok(b)
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 struct ECDSAPrivateKey {
     #[serde(rename = "Curvename")]
     curve_name: String,
-    #[serde(rename = "X", serialize_with = "big_serialize")]
+    #[serde(
+        rename = "X",
+        serialize_with = "big_serialize",
+        deserialize_with = "big_deserialize"
+    )]
     x: BigInt,
-    #[serde(rename = "Y", serialize_with = "big_serialize")]
+    #[serde(
+        rename = "Y",
+        serialize_with = "big_serialize",
+        deserialize_with = "big_deserialize"
+    )]
     y: BigInt,
-    #[serde(rename = "D", serialize_with = "big_serialize")]
+    #[serde(
+        rename = "D",
+        serialize_with = "big_serialize",
+        deserialize_with = "big_deserialize"
+    )]
     d: BigInt,
 }
 
@@ -72,16 +96,52 @@ impl ECDSAPublicKey {
 /// 将私钥转换成为json
 ///  格式例子： {"Curvname":"P-256","X":74695617477160058757747208220371236837474210247114418775262229497812962582435,"Y":51348715319124770392993866417088542497927816017012182211244120852620959209571,"D":29079635126530934056640915735344231956621504557963207107451663058887647996601}
 ///
-pub fn get_ecdsa_private_key_json_format<'a>(k: &EcdsaKeyPair) -> Result<String> {
+pub fn get_ecdsa_private_key_json_format(k: &EcdsaKeyPair) -> Result<String> {
     let r = serde_json::to_string(&ECDSAPrivateKey::from(k))?;
     Ok(r)
 }
 
-pub fn get_ecdsa_public_key_json_format<'a>(k: &EcdsaKeyPair) -> Result<String> {
+pub fn get_ecdsa_public_key_json_format(k: &EcdsaKeyPair) -> Result<String> {
     let alg = &crate::sign::ecdsa::ECDSA_P256_SHA256_ASN1;
     let public_key = crate::sign::ecdsa::UnparsedPublicKey::new(alg, k.public_key());
     let r = serde_json::to_string(&ECDSAPublicKey::from(&public_key))?;
     Ok(r)
+}
+
+pub fn get_ecdsa_private_key_from_json(key_str: &str) -> Result<EcdsaKeyPair> {
+    //判断曲线 TODO
+    let acc: ECDSAPrivateKey = serde_json::from_str(key_str)?;
+    let seed_bytes = acc.d.to_bytes_be();
+    let alg = &crate::sign::ecdsa::ECDSA_P256_SHA256_ASN1_SIGNING;
+    let seed = untrusted::Input::from(&seed_bytes.1);
+    let private_key = crate::sign::ecdsa::EcdsaKeyPair::from_seed_unchecked(alg, seed)?;
+    Ok(private_key)
+}
+
+pub fn get_ecdsa_private_key_from_file(filename: &str) -> Result<EcdsaKeyPair> {
+    let mut f = std::fs::File::open(std::path::PathBuf::from(filename))?;
+    let mut contents = String::new();
+    f.read_to_string(&mut contents)?;
+
+    get_ecdsa_private_key_from_json(contents.as_str())
+}
+
+pub fn get_ecdsa_public_key_from_json(key_str: &str) -> Result<Vec<u8>> {
+    let acc: ECDSAPublicKey = serde_json::from_str(key_str)?;
+    let mut seed = vec![4u8; 1];
+    seed.extend_from_slice(&acc.x.to_bytes_be().1);
+    seed.extend_from_slice(&acc.y.to_bytes_be().1);
+    //let alg = &crate::sign::ecdsa::ECDSA_P256_SHA256_ASN1;
+    //let public_key = crate::sign::ecdsa::UnparsedPublicKey::new(alg, seed);
+    //Ok(public_key.as_ref())
+    Ok(seed)
+}
+
+pub fn get_ecdsa_public_key_from_file(filename: &str) -> Result<Vec<u8>> {
+    let mut f = std::fs::File::open(std::path::PathBuf::from(filename))?;
+    let mut contents = String::new();
+    f.read_to_string(&mut contents)?;
+    get_ecdsa_public_key_from_json(contents.as_str())
 }
 
 pub fn get_ecdsa_public_key_json_format_from_public_key<'a, B: AsRef<[u8]>>(
@@ -92,7 +152,7 @@ pub fn get_ecdsa_public_key_json_format_from_public_key<'a, B: AsRef<[u8]>>(
 }
 
 #[test]
-fn dump_all_test() {
+fn test_json_public() {
     let key_slice = hex::decode(
         "04a664e9bbf6d03e4b75758f7ee3732a0a8eff9e76a0edc9a14ca584b966493664d0d8b7871c5b33bdee9f0e154d7eb948356229e7694cb04a785520952dae1438",
     )
@@ -110,7 +170,7 @@ fn dump_all_test() {
 }
 
 #[test]
-pub fn test_seed_private_public() {
+pub fn test_json_private() {
     use std::str::FromStr;
     let d = "29079635126530934056640915735344231956621504557963207107451663058887647996601";
     let seed_bytes = num_bigint::BigInt::from_str(&d).unwrap().to_bytes_be();
@@ -120,5 +180,9 @@ pub fn test_seed_private_public() {
     assert_eq!(private_key.is_ok(), true);
     let private_key = private_key.unwrap();
     let res = get_ecdsa_private_key_json_format(&private_key);
+    assert_eq!(res.is_ok(), true);
     println!("json: {:?}", res);
+    let sk2 = get_ecdsa_private_key_from_json(res.unwrap().as_str());
+    assert_eq!(sk2.is_ok(), true);
+    assert_eq!(sk2.unwrap().seed_as_bytes(), private_key.seed_as_bytes());
 }

@@ -11,6 +11,23 @@ pub enum CryptoType {
     GM = 2,
 }
 
+impl CryptoType {
+    pub fn from_u8(value: u8) -> Result<CryptoType> {
+        match value {
+            1 => Ok(CryptoType::NIST),
+            2 => Ok(CryptoType::GM),
+            _ => Err(Error::from(ErrorKind::ErrCryptographyNotSupported)),
+        }
+    }
+
+    pub fn to_u8(c: CryptoType) -> u8 {
+        match c {
+            CryptoType::NIST => 1,
+            CryptoType::GM => 2,
+        }
+    }
+}
+
 //pub type PublicKey<'a> =
 //    crate::sign::ecdsa::UnparsedPublicKey<&'a crate::ec::suite_b::ecdsa::signing::PublicKey>;
 pub type PublicKey<'a, B: AsRef<[u8]>> = crate::sign::ecdsa::UnparsedPublicKey<&'a B>;
