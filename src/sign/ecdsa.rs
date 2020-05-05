@@ -125,6 +125,8 @@ impl<B: AsRef<[u8]>> AsRef<[u8]> for UnparsedPublicKey<B> {
 #[cfg(test)]
 mod tests {
 
+    use rand::Rng;
+
     use super::*;
     use crate::sign::ecdsa::KeyPair;
     use std::str::FromStr;
@@ -132,11 +134,16 @@ mod tests {
 
     #[test]
     pub fn test_seed_private_public() {
-        let d = "29079635126530934056640915735344231956621504557963207107451663058887647996601";
-        let seed_bytes = num_bigint::BigInt::from_str(&d).unwrap().to_bytes_be();
+        //let d = "29079635126530934056640915735344231956621504557963207107451663058887647996601";
+        //let seed_bytes = num_bigint::BigInt::from_str(&d).unwrap().to_bytes_be();
         let alg = &crate::sign::ecdsa::ECDSA_P256_SHA256_ASN1_SIGNING;
-        let seed = untrusted::Input::from(&seed_bytes.1);
-        let private_key = crate::sign::ecdsa::EcdsaKeyPair::from_seed_unchecked(alg, seed);
+        //let seed = untrusted::Input::from(&seed_bytes.1);
+        //let private_key = crate::sign::ecdsa::EcdsaKeyPair::from_seed_unchecked(alg, seed);
+        let mut r = vec![0u8; 32];
+        rand::thread_rng().fill(&mut r[..]);
+        let private_key =
+            crate::sign::ecdsa::EcdsaKeyPair::from_seed_unchecked(alg, untrusted::Input::from(&r));
+
         assert_eq!(private_key.is_ok(), true);
         let private_key = private_key.unwrap();
         let msg = "hello, bing!";

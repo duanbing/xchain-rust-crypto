@@ -159,6 +159,7 @@ mod ops;
 
 pub mod curve;
 pub mod ecdsa;
+pub mod ecies;
 
 mod private_key;
 mod public_key;

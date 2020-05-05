@@ -57,7 +57,7 @@ pub struct EcdsaKeyPair {
     d: Scalar<R>,
     alg: &'static EcdsaSigningAlgorithm,
     public_key: PublicKey,
-    seed: Vec<u8>,
+    seed: Vec<u8>, // For backup
 }
 
 derive_debug_via_field!(EcdsaKeyPair, stringify!(EcdsaKeyPair), public_key);
