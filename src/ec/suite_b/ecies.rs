@@ -1,16 +1,18 @@
-pub use crate::sign::ecdsa::EcdsaKeyPair;
-pub use crate::sign::ecdsa::KeyPair;
+use crate::sign::ecdsa::EcdsaKeyPair;
+use crate::sign::ecdsa::KeyPair;
 
 use crate::errors::*;
 use crate::ring::aead::BoundKey;
 use bytes::{BufMut, BytesMut};
 use rand::Rng;
-use std::str::FromStr;
+//use std::str::FromStr;
 
 const INITIAL_SALT: [u8; 20] = [
     0xc3, 0xee, 0xf7, 0x12, 0xc7, 0x2e, 0xbb, 0x5a, 0x11, 0xa7, 0xd2, 0x43, 0x2b, 0xb4, 0x63, 0x65,
     0xbe, 0xf9, 0xf5, 0x02,
 ];
+const LABEL: &[u8] = b"xchain-crypto";
+
 #[allow(non_snake_case)]
 pub fn encrypt<B: AsRef<[u8]>>(
     public_key: &crate::sign::ecdsa::UnparsedPublicKey<B>,
@@ -30,17 +32,6 @@ pub fn encrypt<B: AsRef<[u8]>>(
         untrusted::Input::from(&r),
     )?;
 
-    /*
-    let test_d = "53768679905418652195332718418769459982443772351542749441444565000031408387094";
-    let seed_bytes = num_bigint::BigInt::from_str(&test_d).unwrap().to_bytes_be();
-    let seed = untrusted::Input::from(&seed_bytes.1);
-    let sk = crate::sign::ecdsa::EcdsaKeyPair::from_seed_unchecked(
-        &crate::sign::ecdsa::ECDSA_P256_SHA256_ASN1_SIGNING,
-        seed,
-    )?;
-    */
-
-    //println!("k_B = {:?}", sk.seed_as_bytes());
     let R = sk.public_key();
     println!("R = {:?}", R.as_ref());
     // derive shared secret: S = P_x, where P = r * K_b
@@ -49,13 +40,6 @@ pub fn encrypt<B: AsRef<[u8]>>(
         untrusted::Input::from(public_key.as_ref()),
     )?;
 
-    /*
-    let seed = super::super::keys::Seed::from_bytes(
-        &super::curve::P256,
-        untrusted::Input::from(&sk.seed_as_bytes()),
-    )?;
-    let d = super::private_key::private_key_as_scalar(&private_key_ops, &seed);
-    */
     let d = super::scalar_parse_big_endian_variable(
         common_ops,
         crate::limb::AllowZero::No,
@@ -65,11 +49,15 @@ pub fn encrypt<B: AsRef<[u8]>>(
         "before point_mul: d={:?}\nK_b.0={:?}\nK_b.1={:?}",
         d.limbs, K_b.0.limbs, K_b.1.limbs
     );
+    // P = r * K_b
     let P = private_key_ops.point_mul(&d, &K_b);
-    // TODO check P != 0
+    // ?? check P != 0
 
     let mut secret = vec![];
     let x_1 = common_ops.point_x(&P);
+    println!("x_1 = {:?}", x_1.limbs);
+    let y_1 = common_ops.point_y(&P);
+    println!("y_1 = {:?}", y_1.limbs);
     let mut x_1_unencoded = common_ops.elem_unencoded(&x_1);
     println!("P_x = {:?}", x_1_unencoded.limbs);
     let x_1_len = x_1_unencoded.limbs.len() * 8;
@@ -83,7 +71,6 @@ pub fn encrypt<B: AsRef<[u8]>>(
     let initial_secret = salt.extract(&secret);
     let mut secret = [0; 64];
 
-    const LABEL: &[u8] = b""; //TODO
     hkdf_expand_label(&initial_secret, LABEL, &mut secret)?;
 
     //println!("secret: {:?}", &secret[..]);
@@ -95,8 +82,8 @@ pub fn encrypt<B: AsRef<[u8]>>(
     //println!("d = {:?}", d);
 
     //R || c || d
-    let mut res = vec![];
-    res.extend_from_slice(R.as_ref());
+    let mut res = vec![0u8; 65];
+    res.copy_from_slice(R.as_ref());
     res.extend_from_slice(&c);
     res.extend_from_slice(&d);
     Ok(res)
@@ -112,17 +99,6 @@ pub fn decrypt(sk: &EcdsaKeyPair, c: &[u8], s1: &[u8], s2: &[u8]) -> Result<Vec<
     let R =
         super::public_key::parse_uncompressed_point(&public_key_ops, untrusted::Input::from(R))?;
     // S = P_x, P = (P_x, P_y) = k_B * R
-    /*
-    let seed = super::super::keys::Seed::from_bytes(
-        &super::curve::P256,
-        untrusted::Input::from(&sk.seed_as_bytes()),
-    )?;
-    let k_B = super::private_key::private_key_as_scalar(&private_key_ops, &seed);
-    println!(
-        "before point_mul: d={:?}\nK_b.0={:?}\nK_b.1={:?}",
-        k_B.limbs, R.0.limbs, R.1.limbs
-    );
-    */
     let k_B = super::scalar_parse_big_endian_variable(
         common_ops,
         crate::limb::AllowZero::No,
@@ -136,6 +112,9 @@ pub fn decrypt(sk: &EcdsaKeyPair, c: &[u8], s1: &[u8], s2: &[u8]) -> Result<Vec<
     let P = private_key_ops.point_mul(&k_B, &R);
     let mut secret = vec![];
     let x_1 = common_ops.point_x(&P);
+    println!("x_1 = {:?}", x_1.limbs);
+    let y_1 = common_ops.point_y(&P);
+    println!("y_1 = {:?}", y_1.limbs);
     let mut x_1_unencoded = common_ops.elem_unencoded(&x_1);
     println!("P_x = {:?}", x_1_unencoded.limbs);
     let x_1_len = x_1_unencoded.limbs.len() * 8;
@@ -151,7 +130,6 @@ pub fn decrypt(sk: &EcdsaKeyPair, c: &[u8], s1: &[u8], s2: &[u8]) -> Result<Vec<
     let initial_secret = salt.extract(&secret);
     let mut secret = [0; 64];
 
-    const LABEL: &[u8] = b""; //TODO
     hkdf_expand_label(&initial_secret, LABEL, &mut secret)?;
 
     //println!("secret: {:?}", &secret[..]);
@@ -217,7 +195,7 @@ fn aes_decrypt(key: &[u8], c: &[u8]) -> Result<Vec<u8>> {
 }
 
 fn hkdf_expand_label(prk: &ring::hkdf::Prk, label: &[u8], out: &mut [u8]) -> Result<()> {
-    const LABEL_PREFIX: &[u8] = b"ecies xchain";
+    const LABEL_PREFIX: &[u8] = b"ecies-xchain";
 
     let out_len = (out.len() as u16).to_be_bytes();
     let label_len = (LABEL_PREFIX.len() + label.len()) as u8;
@@ -304,7 +282,7 @@ mod tests {
         let private_key = crate::sign::ecdsa::EcdsaKeyPair::from_seed_unchecked(alg, seed);
         assert_eq!(private_key.is_ok(), true);
         let private_key = private_key.unwrap();
-        let msg = "hello, son!";
+        let msg = "hello, come on, go get it!";
         let s1 = vec![];
         let s2 = vec![];
 
