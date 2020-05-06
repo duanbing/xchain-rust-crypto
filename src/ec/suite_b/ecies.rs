@@ -53,7 +53,7 @@ pub fn encrypt<B: AsRef<[u8]>>(
     */
     // P = r * K_b
     let P = private_key_ops.point_mul(&d, &K_b);
-    let actual_xy = get_actual_point(&P);
+    let actual_xy = get_affine_point(&P);
     // ?? check P != 0
 
     let mut secret = vec![];
@@ -107,7 +107,7 @@ pub fn decrypt(sk: &EcdsaKeyPair, c: &[u8], s1: &[u8], s2: &[u8]) -> Result<Vec<
     );
     */
     let P = private_key_ops.point_mul(&k_B, &R);
-    let actual_xy = get_actual_point(&P);
+    let actual_xy = get_affine_point(&P);
 
     let mut secret = vec![];
     let mut x_1_unencoded = actual_xy.0;
@@ -141,7 +141,10 @@ pub fn decrypt(sk: &EcdsaKeyPair, c: &[u8], s1: &[u8], s2: &[u8]) -> Result<Vec<
     return Ok(m);
 }
 
-fn get_actual_point(
+/// Jac to Aff
+/// Jac: (x, y, z)
+/// Aff: x^' = x / z^2,  y^' = y / z^3
+fn get_affine_point(
     actual_point: &super::ops::Point,
 ) -> (super::ops::Elem<R>, super::ops::Elem<R>) {
     let cops = &super::ops::p256::COMMON_OPS;
