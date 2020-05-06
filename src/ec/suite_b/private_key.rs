@@ -62,7 +62,8 @@ pub fn generate_private_scalar_bytes(
 
     // XXX: The value 100 was chosen to match OpenSSL due to uncertainty of
     // what specific value would be better, but it seems bad to try 100 times.
-    for _ in 0..100 {
+    // DUANBING: 100 -> 2
+    for _ in 0..2 {
         // NSA Guide Steps 1, 2, and 3.
         //
         // Since we calculate the length ourselves, it is pointless to check

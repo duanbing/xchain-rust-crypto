@@ -51,14 +51,11 @@ pub fn encrypt<B: AsRef<[u8]>>(
     );
     // P = r * K_b
     let P = private_key_ops.point_mul(&d, &K_b);
+    let actual_xy = get_actual_point(&P);
     // ?? check P != 0
 
     let mut secret = vec![];
-    let x_1 = common_ops.point_x(&P);
-    println!("x_1 = {:?}", x_1.limbs);
-    let y_1 = common_ops.point_y(&P);
-    println!("y_1 = {:?}", y_1.limbs);
-    let mut x_1_unencoded = common_ops.elem_unencoded(&x_1);
+    let mut x_1_unencoded = actual_xy.0;
     println!("P_x = {:?}", x_1_unencoded.limbs);
     let x_1_len = x_1_unencoded.limbs.len() * 8;
     let x_1_slice =
@@ -110,12 +107,10 @@ pub fn decrypt(sk: &EcdsaKeyPair, c: &[u8], s1: &[u8], s2: &[u8]) -> Result<Vec<
         k_B.limbs, R.0.limbs, R.1.limbs
     );
     let P = private_key_ops.point_mul(&k_B, &R);
+    let actual_xy = get_actual_point(&P);
+
     let mut secret = vec![];
-    let x_1 = common_ops.point_x(&P);
-    println!("x_1 = {:?}", x_1.limbs);
-    let y_1 = common_ops.point_y(&P);
-    println!("y_1 = {:?}", y_1.limbs);
-    let mut x_1_unencoded = common_ops.elem_unencoded(&x_1);
+    let mut x_1_unencoded = actual_xy.0;
     println!("P_x = {:?}", x_1_unencoded.limbs);
     let x_1_len = x_1_unencoded.limbs.len() * 8;
     let x_1_slice =
@@ -147,6 +142,27 @@ pub fn decrypt(sk: &EcdsaKeyPair, c: &[u8], s1: &[u8], s2: &[u8]) -> Result<Vec<
 
     let m = aes_decrypt(k_e, cc)?;
     return Ok(m);
+}
+
+use crate::arithmetic::montgomery::{Unencoded, R};
+fn get_actual_point(
+    actual_point: &super::ops::Point,
+) -> (super::ops::Elem<R>, super::ops::Elem<R>) {
+    let cops = &super::ops::p256::COMMON_OPS;
+    let ops = &super::ops::p256::PRIVATE_KEY_OPS;
+    let actual_x = &cops.point_x(actual_point);
+    let actual_y = &cops.point_y(actual_point);
+    let actual_z = &cops.point_z(actual_point);
+
+    let zz_inv = ops.elem_inverse_squared(&actual_z);
+    let x_aff = cops.elem_product(&actual_x, &zz_inv);
+    let y_aff = {
+        let zzzz_inv = cops.elem_squared(&zz_inv);
+        let zzz_inv = cops.elem_product(&actual_z, &zzzz_inv);
+        cops.elem_product(&actual_y, &zzz_inv)
+    };
+    println!("x = {:?}\ny = {:?}", x_aff.limbs, y_aff.limbs);
+    (x_aff, y_aff)
 }
 
 fn message_tag(k_m: &[u8], c: &[u8], s2: &[u8]) -> Result<Vec<u8>> {
