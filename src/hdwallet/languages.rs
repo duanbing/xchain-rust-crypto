@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Language {
@@ -20,10 +21,14 @@ struct WordMap {
     w2i: HashMap<String, u32>,
 }
 
+//TODO 改成直接加载文件
 fn load_wordlist(filename: &str) -> WordMap {
     let mut m = HashMap::new();
     let mut m2 = HashMap::new();
-    let file = File::open(filename).expect("can not open file");
+    let default_path = std::env::var("LANGS").unwrap_or("".to_string());
+    let base_path = Path::new(&default_path);
+    let path = base_path.join(PathBuf::from(filename));
+    let file = File::open(path).expect("can not open file");
     let reader = BufReader::new(file);
 
     let mut idx = 0;

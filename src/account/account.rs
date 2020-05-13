@@ -4,15 +4,12 @@ use crate::errors::{Error, ErrorKind, Result};
 use crate::hdwallet::{rand as wallet_rand, Language};
 use crate::sign::ecdsa::EcdsaKeyPair;
 use crate::sign::ecdsa::KeyPair;
-use num_bigint::BigInt;
-use num_traits::FromPrimitive;
-use num_traits::Zero;
-use std::ops::*;
 
 use std::fs::File;
 use std::io::prelude::*;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
+#[derive(Debug)]
 pub struct ECDSAAccount {
     entropy: Vec<u8>,
     mnemonic: String,
@@ -22,13 +19,21 @@ pub struct ECDSAAccount {
     address: String,
 }
 
+// FIXME: fake safe
+//  1. overflow check
+fn get_safe_seed(seed: &[u8]) -> Result<untrusted::Input> {
+    Ok(untrusted::Input::from(&seed))
+}
+
 pub fn generate_account_by_mnemonic(mnemonic: &String, lang: Language) -> Result<ECDSAAccount> {
     get_crypto_byte_from_mnemonic(mnemonic, lang)?;
     let password = "yes, you are handsome.".to_string();
-    let seed_raw = wallet_rand::generate_seed_with_error_check(mnemonic, &password, 40, lang)?;
 
     let alg = &crate::sign::ecdsa::ECDSA_P256_SHA256_ASN1_SIGNING;
-    let seed = untrusted::Input::from(&seed_raw);
+    //TODO should not hard code the bitsize
+    let seed_raw = wallet_rand::generate_seed_with_error_check(mnemonic, &password, 32, lang)?;
+    println!("seed.len = {}", seed_raw.len());
+    let seed = get_safe_seed(&seed_raw)?;
     let private_key = crate::sign::ecdsa::EcdsaKeyPair::from_seed_unchecked(alg, seed)?;
 
     // TO JSON
@@ -58,17 +63,16 @@ fn from_tag_byte(tag_byte: u8) -> u8 {
 }
 
 pub fn get_crypto_byte_from_mnemonic(mnemonic: &String, lang: Language) -> Result<CryptoType> {
+    println!("get_crypto_byte_from_mnemonic");
     let entropy = wallet_rand::get_entropy_from_mnemonic(mnemonic, lang)?;
-    //TODO 没有必要用到大整数计算
     let tag_byte = entropy[entropy.len() - 1]; // 8bits
+    println!("tag_byte {:?}", tag_byte);
     let cryptography_int = from_tag_byte(tag_byte);
-    if cryptography_int == 0u8 {
-        return Err(Error::from(ErrorKind::ErrMnemonicNumNotValid));
-    }
+    println!("{:?}", cryptography_int);
     CryptoType::from_u8(cryptography_int)
 }
 
-pub fn crate_new_account_with_mnemonic(
+pub fn create_new_account_with_mnemonic(
     lang: Language,
     strength: wallet_rand::KeyStrength,
     crypto: CryptoType,
@@ -77,10 +81,8 @@ pub fn crate_new_account_with_mnemonic(
     let mut entropybytes = wallet_rand::generate_entropy(strength)?;
     let tag_byte = to_tag_byte(CryptoType::to_u8(crypto));
 
-    let reserved_byte = 0u8;
-    let tag_int = tag_byte & reserved_byte;
-
-    entropybytes.push(tag_int);
+    println!("begin generate_mnemonic, tag = {}", tag_byte);
+    entropybytes.push(tag_byte);
     let mnemonic = wallet_rand::generate_mnemonic(&entropybytes, lang)?;
     generate_account_by_mnemonic(&mnemonic, lang)
 }
@@ -91,7 +93,7 @@ pub fn export_new_account_with_mnenomic(
     strength: wallet_rand::KeyStrength,
     cryptography: CryptoType,
 ) -> Result<()> {
-    let acc = crate_new_account_with_mnemonic(lang, strength, cryptography)?;
+    let acc = create_new_account_with_mnemonic(lang, strength, cryptography)?;
     let path: PathBuf = [base_path, "mnenomic"].iter().collect();
     let mut file = File::create(path)?;
     file.write_all(acc.mnemonic.as_bytes())?;
@@ -128,4 +130,27 @@ pub fn export_new_account(base_path: &str, private_key: &EcdsaKeyPair) -> Result
     let mut file = File::create(path)?;
     file.write_all(address.as_bytes())?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_create_account() {
+        let res = create_new_account_with_mnemonic(
+            Language::ChineseSimplified,
+            wallet_rand::KeyStrength::EASY,
+            CryptoType::NIST,
+        );
+        assert_eq!(res.is_ok(), true);
+    }
+
+    #[test]
+    fn test_open_account() {}
+
+    #[test]
+    fn test_save_account() {}
+
 }
