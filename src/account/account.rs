@@ -84,6 +84,7 @@ pub fn create_new_account_with_mnemonic(
     println!("begin generate_mnemonic, tag = {}", tag_byte);
     entropybytes.push(tag_byte);
     let mnemonic = wallet_rand::generate_mnemonic(&entropybytes, lang)?;
+    println!("generate_account_by_mnemonic");
     generate_account_by_mnemonic(&mnemonic, lang)
 }
 
@@ -141,7 +142,7 @@ mod tests {
     fn test_create_account() {
         let res = create_new_account_with_mnemonic(
             Language::ChineseSimplified,
-            wallet_rand::KeyStrength::EASY,
+            wallet_rand::KeyStrength::HARD,
             CryptoType::NIST,
         );
         assert_eq!(res.is_ok(), true);

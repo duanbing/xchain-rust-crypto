@@ -34,7 +34,7 @@ lazy_static! {
 //	|  224  |  7 |   231  |  21  |
 //	|  256  |  8 |   264  |  24  |
 fn validate_entropy_bit_size(bit_size: usize) -> Result<()> {
-    if (bit_size) % 32 != 0 || (bit_size + 8) < 128 || (bit_size + 8) > 256 {
+    if (bit_size) % 32 != 0 || (bit_size) < 128 || (bit_size) > 256 {
         return Err(Error::from(ErrorKind::ErrInvalidEntropyLength));
     }
     Ok(())
@@ -49,7 +49,7 @@ pub fn generate_entropy(bit_size: usize) -> Result<Vec<u8>> {
 }
 
 fn validate_raw_entropy_bit_size(bit_size: usize) -> Result<()> {
-    println!("validate_entropy_bit_size {}", bit_size);
+    println!("validate_raw_entropy_bit_size {}", bit_size);
     if (bit_size + 8) % 32 != 0 || (bit_size + 8) < 128 || (bit_size + 8) > 256 {
         return Err(Error::from(ErrorKind::ErrInvalidEntropyLength));
     }
