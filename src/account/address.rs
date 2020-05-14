@@ -52,8 +52,10 @@ fn get_address_from_key_data<B: AsRef<[u8]>>(_key: &PublicKey<B>, data: &[u8]) -
     let mut hash160 = vec![0u8; 20];
     ha.input(&mut hash256.as_ref());
 
+    ha.result(&mut hash160);
+
     //TODO:  NIST only now, get the standard from _key
-    let n_version = CryptoType::NIST as u8;
+    let n_version = CryptoType::to_u8(CryptoType::NIST);
     let mut buf = vec![n_version; 1];
     buf.append(&mut hash160);
 

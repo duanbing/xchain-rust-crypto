@@ -11,8 +11,9 @@ lazy_static! {
         { num_bigint::BigInt::from_i32(2048).unwrap() };
     static ref LAST_11BITS_MASK: num_bigint::BigInt =
         { num_bigint::BigInt::from_i32(2047).unwrap() };
-    static ref BIGINT_ZERO: num_bigint::BigInt = { num_traits::Zero::zero() };
-    static ref BIGINT_ONE: num_bigint::BigInt = { num_traits::One::one() };
+    pub static ref BIGINT_ZERO: num_bigint::BigInt = { num_traits::Zero::zero() };
+    pub static ref BIGINT_ONE: num_bigint::BigInt = { num_traits::One::one() };
+    pub static ref BIGINT_TWO: num_bigint::BigInt = { num_bigint::BigInt::from_i32(2).unwrap() };
 }
 
 //  检查试图获取的Entropy的比特大小是否符合规范要求：
@@ -41,7 +42,6 @@ fn validate_entropy_bit_size(bit_size: usize) -> Result<()> {
 }
 
 pub fn generate_entropy(bit_size: usize) -> Result<Vec<u8>> {
-    println!("generate_entropy");
     validate_raw_entropy_bit_size(bit_size)?;
     let mut ent = vec![0u8; bit_size / 8];
     rand::thread_rng().fill_bytes(&mut ent);
@@ -49,7 +49,6 @@ pub fn generate_entropy(bit_size: usize) -> Result<Vec<u8>> {
 }
 
 fn validate_raw_entropy_bit_size(bit_size: usize) -> Result<()> {
-    println!("validate_raw_entropy_bit_size {}", bit_size);
     if (bit_size + 8) % 32 != 0 || (bit_size + 8) < 128 || (bit_size + 8) > 256 {
         return Err(Error::from(ErrorKind::ErrInvalidEntropyLength));
     }
@@ -58,35 +57,25 @@ fn validate_raw_entropy_bit_size(bit_size: usize) -> Result<()> {
 
 pub fn generate_mnemonic(entropy: &[u8], l: Language) -> Result<String> {
     let entropy_bit_len = entropy.len() << 3;
-    println!("generate_mnemonic, entropy_bit_len: {}", entropy_bit_len);
     validate_entropy_bit_size(entropy_bit_len)?;
 
     let word_list = get_word_list_by_langs(l);
     let checksum_bit_len = entropy_bit_len >> 5;
-    println!("checksum_bit_len: {}", checksum_bit_len);
-    println!("entropy : {:?}", entropy);
     let mut entropy_int = add_checksum(entropy);
-    println!("entropy_int : {}", entropy_int);
 
-    println!("total len: {}", entropy_bit_len + checksum_bit_len);
     let sentense_len = (entropy_bit_len + checksum_bit_len) / 11;
-    println!("sentense_len: {}", sentense_len);
     let mut words = vec![String::from(""); sentense_len];
     for i in (0..sentense_len).rev() {
-        println!("entropy_int: {}, {}", entropy_int, i);
         let mut word = LAST_11BITS_MASK.clone();
         word.bitand_assign(entropy_int.clone());
         entropy_int.div_assign(RIGHT_SHIFT_11BITS_DIVIDER.clone());
-        println!("word_bytes : {:?}", word);
         let word_bytes = bytes_pad(word.to_bytes_be().1, 2);
-        println!("word_bytes : {:?}", word_bytes);
         words[i] =
             word_list[&(num_bigint::BigInt::from_bytes_be(num_bigint::Sign::Plus, &word_bytes)
                 .to_i16()
                 .unwrap() as u32)]
                 .clone();
     }
-    println!("workds: {:?}", words);
     Ok(words.join(" "))
 }
 
@@ -114,32 +103,28 @@ pub fn generate_old_entropy(entropy: &[u8], lang: Language) -> Result<String> {
 }
 
 fn add_checksum(entropy: &[u8]) -> num_bigint::BigInt {
-    let hb = crate::hash::hash::double_sha256(entropy);
+    let hb = crate::hash::hash::sha256(entropy);
     let _1st_checksum_byte = hb[1];
     let checksum_bit_len = entropy.len() >> 2;
     let mut data_bigint = num_bigint::BigInt::from_bytes_be(num_bigint::Sign::Plus, entropy);
-    let big_two = num_bigint::BigInt::from_i32(2).unwrap();
-    let big_one = BIGINT_ONE.clone();
     for i in 0..checksum_bit_len {
-        data_bigint.mul_assign(big_two.clone());
+        data_bigint.mul_assign(BIGINT_TWO.clone());
         if _1st_checksum_byte & (1 << (7 - i)) > 0 {
-            data_bigint.bitxor_assign(big_one.clone());
+            data_bigint.bitxor_assign(BIGINT_ONE.clone());
         }
     }
     data_bigint
 }
 
 fn add_old_checksum(entropy: &[u8]) -> num_bigint::BigInt {
-    let hb = crate::hash::hash::double_sha256(entropy);
+    let hb = crate::hash::hash::sha256(entropy);
     let _1st_checksum_byte = hb[0];
     let checksum_bit_len = entropy.len() >> 2;
     let mut data_bigint = num_bigint::BigInt::from_bytes_be(num_bigint::Sign::Plus, entropy);
-    let big_two = num_bigint::BigInt::from_i32(2).unwrap();
-    let big_one = BIGINT_ONE.clone();
     for i in 0..checksum_bit_len {
-        data_bigint.mul_assign(big_two.clone());
+        data_bigint.mul_assign(BIGINT_TWO.clone());
         if _1st_checksum_byte & (1 << (7 - i)) > 0 {
-            data_bigint.bitxor_assign(big_one.clone());
+            data_bigint.bitxor_assign(BIGINT_ONE.clone());
         }
     }
     data_bigint
@@ -156,7 +141,6 @@ pub fn bytes_pad(v: Vec<u8>, sz: usize) -> Vec<u8> {
 
 pub fn get_entropy_from_mnemonic(mnemonic: &String, lang: Language) -> Result<Vec<u8>> {
     let mnemonic_slice = get_words_from_valid_mnemonic_sentense(mnemonic, lang)?;
-    println!("words: {:?}", mnemonic_slice);
     let mnemonic_bit_size = mnemonic_slice.len() * 11;
     let checksum_bit_size = mnemonic_bit_size % 32;
 
@@ -170,24 +154,18 @@ pub fn get_entropy_from_mnemonic(mnemonic: &String, lang: Language) -> Result<Ve
             &idx.to_be_bytes(),
         ));
     }
-    println!("bigint: {}", b);
     let big_two = num_bigint::BigInt::from_i32(2).unwrap();
     let checksum_modulo = big_two.modpow(
         &num_bigint::BigInt::from_u32(checksum_bit_size as u32).unwrap(),
         &(RIGHT_SHIFT_11BITS_DIVIDER.clone()),
     );
 
-    println!("checksum_modulo: {}", checksum_modulo);
     let mut entropy = b.clone();
     entropy.div_assign(checksum_modulo);
-    println!("entropy: {}", entropy);
     let entropy_bytes_size = (mnemonic_bit_size - checksum_bit_size) / 8;
     let full_bytes_size = entropy_bytes_size + 1;
-    println!("1: {:?}", entropy.to_bytes_be().1);
     let entropy_bytes = bytes_pad(entropy.to_bytes_be().1, entropy_bytes_size);
-    println!("1: {:?}", entropy_bytes);
     let entropy_with_checksum_bytes = bytes_pad(b.to_bytes_be().1, full_bytes_size);
-    println!("1: {:?}", entropy_with_checksum_bytes);
 
     let add1 = add_checksum(&entropy_bytes);
     let new_entropy_with_checksum_bytes = bytes_pad(add1.to_bytes_be().1, full_bytes_size);
@@ -195,7 +173,6 @@ pub fn get_entropy_from_mnemonic(mnemonic: &String, lang: Language) -> Result<Ve
         return Err(Error::from(ErrorKind::ErrMnemonicChecksumIncorrect));
     }
 
-    println!("1: {:?}", entropy.to_bytes_be().1);
     Ok(entropy.to_bytes_be().1)
 }
 
@@ -246,7 +223,6 @@ pub fn generate_seed_with_error_check(
     generate_seed(mnemonic, password, keylen)
 }
 
-// TODO:  password: mnimonic,
 fn generate_seed(mnimonic: &String, password: &String, keylen: usize) -> Result<Vec<u8>> {
     let mut salt = "mnemonic".to_owned();
     salt.push_str(password);
@@ -316,7 +292,7 @@ pub fn generate_seed_with_strength_and_keylen(
 }
 
 fn generate_seed_with_random_password(password: &[u8], keylen: usize) -> Result<Vec<u8>> {
-    let salt = "yes, you are handsome.";
+    let salt = "jingbo is handsome!";
     let mut to_store = vec![0u8; keylen];
     ring::pbkdf2::derive(
         ring::pbkdf2::PBKDF2_HMAC_SHA512,

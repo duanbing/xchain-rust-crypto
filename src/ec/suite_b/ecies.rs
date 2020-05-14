@@ -33,7 +33,6 @@ pub fn encrypt<B: AsRef<[u8]>>(
     )?;
 
     let R = sk.public_key();
-    //println!("R = {:?}", R.as_ref());
     // derive shared secret: S = P_x, where P = r * K_b
     let K_b = super::public_key::parse_uncompressed_point(
         &public_key_ops,
@@ -45,12 +44,6 @@ pub fn encrypt<B: AsRef<[u8]>>(
         crate::limb::AllowZero::No,
         untrusted::Input::from(&sk.seed_as_bytes()),
     )?;
-    /*
-    println!(
-        "before point_mul: d={:?}\nK_b.0={:?}\nK_b.1={:?}",
-        d.limbs, K_b.0.limbs, K_b.1.limbs
-    );
-    */
     // P = r * K_b
     let P = private_key_ops.point_mul(&d, &K_b);
     let actual_xy = super::private_key::affine_from_jacobian(private_key_ops, &P)?;
@@ -58,7 +51,6 @@ pub fn encrypt<B: AsRef<[u8]>>(
 
     let mut secret = vec![];
     let mut x_1_unencoded = actual_xy.0;
-    //println!("P_x = {:?}", x_1_unencoded.limbs);
     let x_1_len = x_1_unencoded.limbs.len() * 8;
     let x_1_slice =
         unsafe { std::slice::from_raw_parts(x_1_unencoded.limbs.as_mut_ptr() as *mut u8, x_1_len) };
@@ -90,7 +82,6 @@ pub fn decrypt(sk: &EcdsaKeyPair, c: &[u8], s1: &[u8], s2: &[u8]) -> Result<Vec<
     let private_key_ops = &super::ops::p256::PRIVATE_KEY_OPS;
     let common_ops = &super::ops::p256::COMMON_OPS;
     let R = &c[0..65];
-    //println!("R = {:?}", R.as_ref());
     let R =
         super::public_key::parse_uncompressed_point(&public_key_ops, untrusted::Input::from(R))?;
     // S = P_x, P = (P_x, P_y) = k_B * R
@@ -100,18 +91,11 @@ pub fn decrypt(sk: &EcdsaKeyPair, c: &[u8], s1: &[u8], s2: &[u8]) -> Result<Vec<
         untrusted::Input::from(&sk.seed_as_bytes()),
     )?;
 
-    /*
-    println!(
-        "before point_mul: d={:?}\nK_b.0={:?}\nK_b.1={:?}",
-        k_B.limbs, R.0.limbs, R.1.limbs
-    );
-    */
     let P = private_key_ops.point_mul(&k_B, &R);
     let actual_xy = super::private_key::affine_from_jacobian(private_key_ops, &P)?;
 
     let mut secret = vec![];
     let mut x_1_unencoded = actual_xy.0;
-    //println!("P_x = {:?}", x_1_unencoded.limbs);
     let x_1_len = x_1_unencoded.limbs.len() * 8;
     let x_1_slice =
         unsafe { std::slice::from_raw_parts(x_1_unencoded.limbs.as_mut_ptr() as *mut u8, x_1_len) };
@@ -142,14 +126,6 @@ pub fn decrypt(sk: &EcdsaKeyPair, c: &[u8], s1: &[u8], s2: &[u8]) -> Result<Vec<
 }
 
 fn message_tag(k_m: &[u8], c: &[u8], s2: &[u8]) -> Result<Vec<u8>> {
-    /*
-    println!(
-        "message_tag: k_m = {}. c = {}, s2 = {}",
-        k_m.len(),
-        c.len(),
-        s2.len()
-    );
-    */
     let mut msg = vec![];
     msg.extend_from_slice(c);
     msg.extend_from_slice(s2);

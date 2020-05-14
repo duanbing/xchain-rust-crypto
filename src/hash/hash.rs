@@ -6,3 +6,8 @@ pub fn double_sha256(data: &[u8]) -> Vec<u8> {
         .as_ref()
         .to_vec()
 }
+
+pub fn sha256(data: &[u8]) -> Vec<u8> {
+    let res = digest::digest(&digest::SHA256, data);
+    res.as_ref().to_vec()
+}
