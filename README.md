@@ -1,5 +1,5 @@
 # xchain-rust-crypto
-XChain Rust Crypto;
+[XuperChain](https://github.com/xuperchain/xuperchain) Rust Crypto;
 deeply depends on [ring](https://github.com/briansmith/ring).
 ## Design
 [xchain-rust-crypto-intro](./xchain-rust-crypto-intrro.pdf)
