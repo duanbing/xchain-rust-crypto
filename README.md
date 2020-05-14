@@ -8,7 +8,7 @@ deeply depends on [ring](https://github.com/briansmith/ring).
 * [x] hash/aes/encoder
 * [x] address and mnemonic
 * [x] ecdsa
-* [x] ecies, supported but is not compatible with go-ecies due to different AES.
+* [x] ecies, supported but is not compatible with go-ecies due to different AES used.
 * [ ] schnorr and BLS multi-sig
 * [ ] bulletproofs
 * [ ] HD Wallet(BIP32)
