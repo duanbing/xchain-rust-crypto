@@ -10,6 +10,6 @@ deeply depends on [ring](https://github.com/briansmith/ring).
 * [x] ecdsa
 * [x] ecies, supported but is not compatible with go-ecies due to different AES.
 * [ ] schnorr and BLS multi-sig
-* [ ] Bulletproofs
-* [ ] HD Wallet
+* [ ] bulletproofs
+* [ ] HD Wallet(BIP32)
 
