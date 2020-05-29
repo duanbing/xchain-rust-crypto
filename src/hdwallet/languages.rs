@@ -1,10 +1,5 @@
 use std::collections::HashMap;
 
-use std::fs::File;
-use std::io::prelude::*;
-use std::io::BufReader;
-use std::path::{Path, PathBuf};
-
 #[derive(Debug, Clone, Copy)]
 pub enum Language {
     ChineseSimplified = 1,
@@ -12,8 +7,8 @@ pub enum Language {
 }
 
 lazy_static! {
-    static ref WORDLIST_S_CH: WordMap = { load_wordlist("./langs/simplified_chinese.txt") };
-    static ref WORDLIST_EN: WordMap = { load_wordlist("./langs/english.txt") };
+    static ref WORDLIST_S_CH: WordMap = { load_wordlist(include_str!("langs/simplified_chinese.txt")) };
+    static ref WORDLIST_EN: WordMap = { load_wordlist(include_str!("langs/english.txt")) };
 }
 
 struct WordMap {
@@ -21,21 +16,17 @@ struct WordMap {
     w2i: HashMap<String, u32>,
 }
 
-//TODO 改成直接加载文件
-fn load_wordlist(filename: &str) -> WordMap {
+fn load_wordlist(lang_words: &'static str) -> WordMap {
     let mut m = HashMap::new();
     let mut m2 = HashMap::new();
-    let default_path = std::env::var("LANGS").unwrap_or("".to_string());
-    let base_path = Path::new(&default_path);
-    let path = base_path.join(PathBuf::from(filename));
-    let file = File::open(path).expect("can not open file");
-    let reader = BufReader::new(file);
+
+    let inner: Vec<_> = lang_words.split_whitespace().collect();
+    debug_assert!(inner.len() == 2048, "Invalid wordlist length");
 
     let mut idx = 0;
-    for line in reader.lines() {
-        let line = line.unwrap();
+    for line in inner {
         m.insert(idx, line.to_owned());
-        m2.insert(line, idx);
+        m2.insert(line.to_owned(), idx);
         idx += 1;
     }
     WordMap { i2w: m, w2i: m2 }

@@ -28,8 +28,6 @@ impl CryptoType {
     }
 }
 
-//pub type PublicKey<'a> =
-//    crate::sign::ecdsa::UnparsedPublicKey<&'a crate::ec::suite_b::ecdsa::signing::PublicKey>;
 pub type PublicKey<'a, B: AsRef<[u8]>> = crate::sign::ecdsa::UnparsedPublicKey<&'a B>;
 
 pub fn get_address_from_public_keys<B: AsRef<[u8]>>(keys: &[PublicKey<B>]) -> Result<String> {
