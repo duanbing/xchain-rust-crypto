@@ -8,11 +8,13 @@ pub use crate::ec::suite_b::ecdsa::{
 use core;
 use untrusted;
 
+/*
 pub fn sign_ecdsa_by_double_sha256(key_pair: &EcdsaKeyPair, msg: &[u8]) -> Result<Vec<u8>> {
     let msg = ring::digest::digest(&ring::digest::SHA256, msg);
     let sig = key_pair.sign(msg.as_ref())?;
     Ok(sig.as_ref().to_vec())
 }
+*/
 
 /// Key pairs for signing messages (private key and public key).
 pub trait KeyPair: core::fmt::Debug + Send + Sized + Sync {
@@ -146,16 +148,23 @@ mod tests {
 
         assert_eq!(private_key.is_ok(), true);
         let private_key = private_key.unwrap();
-        let msg = "hello, bing!";
-        let sig = private_key.sign(msg.as_bytes());
+        //let msg = "hello, bing!";
+        let msg = base64::decode("3LpLPx65qASpJmeFB+bjFBV+W+z6NK8GcQl0E2knd7w=").unwrap();
+        let sig = private_key.sign(&msg);
         assert_eq!(sig.is_ok(), true);
         let sig = sig.unwrap();
+        let sig64 = base64::encode(sig);
+        println!("sig: {:?}", sig64);
 
         let alg = &crate::sign::ecdsa::ECDSA_P256_SHA256_ASN1;
-        println!("public key: {:?}", private_key.public_key().as_ref());
+        println!(
+            "public key: {:?}, \nhex={:?}",
+            private_key.public_key().as_ref(),
+            hex::encode(private_key.public_key().as_ref())
+        );
 
         let public_key = self::UnparsedPublicKey::new(alg, private_key.public_key());
-        let res = public_key.verify(msg.as_bytes(), sig.as_ref());
+        let res = public_key.verify(&msg, sig.as_ref());
         assert_eq!(true, res.is_ok());
     }
 
@@ -171,6 +180,20 @@ mod tests {
         let msg = String::from("hello world");
         let sig = hex::decode("3046022100873aad44cea8badf28c8f6b4509763e875a21805daf971bffc3a9bd27288a30b022100899216a47e3f071ede3d697bb172b94a9240d0c8cc6a5754a68edc00e1752873").unwrap();
         let res = public_key.verify(&msg.as_bytes(), &sig);
+        println!("{:?}", res);
+    }
+
+    #[test]
+    pub fn test_sign() {
+        let key_slice = hex::decode(
+            "04a24cf1352cd8d21be0567ce730cc9a78f5269d2eeabc44e5cb7aa01cd76ac50c0157f847b864048021d9116dc799b1c4659aeffb5606c4b28801b287eb709de8",
+        ).unwrap();
+        let alg = &crate::sign::ecdsa::ECDSA_P256_SHA256_ASN1;
+        let public_key = self::UnparsedPublicKey::new(alg, &key_slice);
+        let msg = base64::decode("3LpLPx65qASpJmeFB+bjFBV+W+z6NK8GcQl0E2knd7w=").unwrap();
+        //let sig = base64::decode("MEUCIQD2GstVJp38SLDDHQbcrGeGUANsxNfVSZVhujByrQTLqwIgBdKLgc8Hfr3zibQ8wj3aixEs2qwGkzcdOXOpRoTAUyk=").unwrap();
+        let sig = base64::decode("MEYCIQDT5btCwDOqc9dNpgP8yU/W7fxhs1TVruJCzmbmVTpGXQIhAITc/5PKxEWcY8E8iCtduEAM/Cz14HMPpyjwggah/Bv3").unwrap();
+        let res = public_key.verify(&msg, &sig);
         println!("{:?}", res);
     }
 }
