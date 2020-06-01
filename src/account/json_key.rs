@@ -101,6 +101,41 @@ pub fn get_ecdsa_private_key_json_format(k: &EcdsaKeyPair) -> Result<String> {
     Ok(r)
 }
 
+//TODO useless. For compatibility to GO CRYPTO
+// https://github.com/golang/go/issues/28154
+fn del_quote(s: &str) -> String {
+    //  "X":[0-9]+,  ->  "X": "[0-9]+",
+    let matcher = r#""X":(")([0-9]+)(")"#;
+    let re = regex::Regex::new(matcher).unwrap();
+    let s = re.replace_all(s, |caps: &regex::Captures| format!("\"X\":{}", &caps[2]));
+
+    let matcher = r#""Y":(")([0-9]+)(")"#;
+    let re = regex::Regex::new(matcher).unwrap();
+    let s = re.replace_all(&s, |caps: &regex::Captures| format!("\"Y\":{}", &caps[2]));
+
+    let matcher = r#""D":(")([0-9]+)(")"#;
+    let re = regex::Regex::new(matcher).unwrap();
+    re.replace_all(&s, |caps: &regex::Captures| format!("\"D\":{}", &caps[2]))
+        .to_string()
+}
+
+#[test]
+fn test_del_quote() {
+    let r = r#"{"Curvename":"P-256","X":"111614135018814739113902147296905176613869996836868032563930690178519466984733","Y":"13721631144572906234172791140317599374441573108268774470311606493984588103134","D":"101033109402914252566697805177509348009755604987980294429982156940657201471528"}"#;
+    let d = del_quote(r);
+    let rd = r#"{"Curvename":"P-256","X":111614135018814739113902147296905176613869996836868032563930690178519466984733,"Y":13721631144572906234172791140317599374441573108268774470311606493984588103134,"D":101033109402914252566697805177509348009755604987980294429982156940657201471528}"#;
+    assert_eq!(rd, d.as_str());
+
+    let r = r#"{"Curvename":"P-256","X":"111614135018814739113902147296905176613869996836868032563930690178519466984733","Y":"13721631144572906234172791140317599374441573108268774470311606493984588103134"}"#;
+    let d = del_quote(r);
+    let rd = r#"{"Curvename":"P-256","X":111614135018814739113902147296905176613869996836868032563930690178519466984733,"Y":13721631144572906234172791140317599374441573108268774470311606493984588103134}"#;
+    assert_eq!(rd, d.as_str());
+}
+
+pub fn get_ecdsa_public_key_json_format_in_go(k: &EcdsaKeyPair) -> Result<String> {
+    Ok(del_quote(get_ecdsa_public_key_json_format(k)?.as_str()))
+}
+
 pub fn get_ecdsa_public_key_json_format(k: &EcdsaKeyPair) -> Result<String> {
     let alg = &crate::sign::ecdsa::ECDSA_P256_SHA256_ASN1;
     let public_key = crate::sign::ecdsa::UnparsedPublicKey::new(alg, k.public_key());
