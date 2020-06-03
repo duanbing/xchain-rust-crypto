@@ -167,9 +167,8 @@ mod tests {
 
     #[test]
     fn test_check_account() {
-        let mnemonic = String::from(
-            "呈 仓 冯 滚 刚 伙 此 丈 锅 语 揭 弃 精 塘 界 戴 玩 爬 奶 滩 哀 极 样 费",
-        );
+        let mnemonic =
+            String::from("呈 仓 冯 滚 刚 伙 此 丈 锅 语 揭 弃 精 塘 界 戴 玩 爬 奶 滩 哀 极 样 费");
         let acc = generate_account_by_mnemonic(&mnemonic, Language::ChineseSimplified);
         assert_eq!(acc.is_ok(), true);
         let acc = acc.unwrap();
